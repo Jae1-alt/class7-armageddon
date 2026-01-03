@@ -2,7 +2,7 @@
 dnf update -y
 dnf install -y python3-pip
 pip3 install flask pymysql boto3
-dnf install mariadb105 -y
+dnf install mariadb105 -y        #installs MariaDB Client on EC2
 
 mkdir -p /opt/rdsapp
 cat >/opt/rdsapp/app.py <<'PY'
