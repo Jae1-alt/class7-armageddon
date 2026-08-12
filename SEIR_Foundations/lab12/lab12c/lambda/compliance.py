@@ -1384,7 +1384,9 @@ def generate_pdf(report: dict[str, Any]) -> bytes:
     )
     story.append(
         Paragraph(
-            safe_text(narrative["executive_summary"]),
+            safe_text(
+                narrative.get("executive_summary", "")
+            ),
             body_style,
         )
     )
@@ -1394,7 +1396,9 @@ def generate_pdf(report: dict[str, Any]) -> bytes:
     )
     story.append(
         Paragraph(
-            safe_text(narrative["overall_assessment"]),
+            safe_text(
+                narrative.get("overall_assessment", "")
+            ),
             body_style,
         )
     )
@@ -1899,26 +1903,3 @@ def lambda_handler(
                 }
             ),
         }
-'''
-
-requirements = """boto3>=1.34.0
-reportlab==4.4.3
-"""
-
-test_event = """{
-  "frameworks": [
-    "NIST CSF 2.0",
-    "CIS Controls v8"
-  ]
-}
-"""
-
-base = Path("/mnt/data")
-(base / "compliance_agent.py").write_text(code, encoding="utf-8")
-(base / "requirements.txt").write_text(requirements, encoding="utf-8")
-(base / "compliance_test_event.json").write_text(test_event, encoding="utf-8")
-
-print("Created:")
-print(base / "compliance_agent.py")
-print(base / "requirements.txt")
-print(base / "compliance_test_event.json")

@@ -78,11 +78,11 @@ than individual implementation modules.
 
 Correct
 
-    from models.enums import RiskLevel
+    from models.enums import ReportStatus
 
 Instead of
 
-    from models.enums.threat_enums import RiskLevel
+    from models.enums.report_enums import ReportStatus
 
 Why?
 
@@ -281,24 +281,31 @@ from .provider_enums import (
     ProviderType,
     ProviderCapability,
     ProviderHealth,
+    ProviderTrustLevel,
 )
 
 # =============================================================================
 # Threat Enumerations
 # =============================================================================
 #
-# Enumerations used by threat analysis and risk evaluation.
-#
-# These values provide a common language for expressing the severity,
-# confidence, and category of observed threats.
+# Enumerations used by threat analysis: classification, location, observed
+# conditions, severity, confidence, assessment, investigation workflow,
+# disposition, attribution, and activity patterns.
 #
 # =============================================================================
 
 from .threat_enums import (
-    RiskLevel,
-    ThreatCategory,
+    ThreatType,
+    ThreatDomain,
+    ThreatCondition,
+    ThreatSeverity,
     ThreatConfidence,
-    PriorityLevel,
+    ThreatAssessment,
+    ThreatStatus,
+    ThreatDisposition,
+    ThreatActorType,
+    ThreatActivityPattern,
+    InvestigationStatus,
 )
 
 # =============================================================================
@@ -310,52 +317,79 @@ from .threat_enums import (
 # =============================================================================
 
 from .report_enums import (
+    ReportType,
     ReportStatus,
+    ReportFormat,
+    ReportAudience,
+    ReportTechnicalLevel,
     FindingSeverity,
     RecommendationPriority,
-    ReportFormat,
+    RecommendationCategory,
 )
 
 # =============================================================================
 # Response Enumerations
 # =============================================================================
 #
-# Enumerations representing API and workflow responses.
+# Enumerations representing the response planning and execution workflow.
 #
 # =============================================================================
 
 from .response_enums import (
+    ResponseAction,
+    ResponseMode,
+    ResponseApproval,
+    ApprovalMode,
+    ResponseOwner,
+    ResponsePriority,
     ResponseStatus,
-    ResponseType,
+    ResponseOutcome,
+    ResponseVerification,
 )
 
 # =============================================================================
 # Cache Enumerations
 # =============================================================================
 #
-# Enumerations describing cache operations and cache state.
+# Enumerations describing cached evidence: what is stored, who may reuse it,
+# retrieval strategy, lookup status, freshness, storage, ownership, and
+# operation results.
 #
 # =============================================================================
 
 from .cache_enums import (
-    CacheStatus,
+    CacheType,
+    CacheScope,
     CachePolicy,
-    CacheOperation,
+    CacheStatus,
+    CacheFreshness,
+    CacheStorage,
+    CacheOwnership,
+    CacheResult,
 )
 
 # =============================================================================
 # Platform Enumerations
 # =============================================================================
 #
-# Enumerations shared across the entire Gen2X platform.
+# Enumerations describing the platform itself: architectural identity,
+# behavior, and operational state.
 #
 # =============================================================================
 
 from .platform_enums import (
-    Environment,
-    ExecutionMode,
-    AgentStatus,
-    LogLevel,
+    PlatformType,
+    PlatformRole,
+    PlatformResponsibility,
+    PlatformComponent,
+    PlatformService,
+    PlatformCapability,
+    PlatformEnvironment,
+    PlatformDeployment,
+    PlatformLifecycle,
+    PlatformState,
+    PlatformHealth,
+    PlatformTrustLevel,
 )
 
 # =============================================================================
@@ -399,46 +433,78 @@ __all__ = [
     "ProviderType",
     "ProviderCapability",
     "ProviderHealth",
+    "ProviderTrustLevel",
 
     # -------------------------------------------------------------------------
     # Threat Enumerations
     # -------------------------------------------------------------------------
 
-    "RiskLevel",
-    "ThreatCategory",
+    "ThreatType",
+    "ThreatDomain",
+    "ThreatCondition",
+    "ThreatSeverity",
     "ThreatConfidence",
-    "PriorityLevel",
+    "ThreatAssessment",
+    "ThreatStatus",
+    "ThreatDisposition",
+    "ThreatActorType",
+    "ThreatActivityPattern",
+    "InvestigationStatus",
 
     # -------------------------------------------------------------------------
     # Report Enumerations
     # -------------------------------------------------------------------------
 
+    "ReportType",
     "ReportStatus",
+    "ReportFormat",
+    "ReportAudience",
+    "ReportTechnicalLevel",
     "FindingSeverity",
     "RecommendationPriority",
-    "ReportFormat",
+    "RecommendationCategory",
 
     # -------------------------------------------------------------------------
     # Response Enumerations
     # -------------------------------------------------------------------------
 
+    "ResponseAction",
+    "ResponseMode",
+    "ResponseApproval",
+    "ApprovalMode",
+    "ResponseOwner",
+    "ResponsePriority",
     "ResponseStatus",
-    "ResponseType",
+    "ResponseOutcome",
+    "ResponseVerification",
 
     # -------------------------------------------------------------------------
     # Cache Enumerations
     # -------------------------------------------------------------------------
 
-    "CacheStatus",
+    "CacheType",
+    "CacheScope",
     "CachePolicy",
-    "CacheOperation",
+    "CacheStatus",
+    "CacheFreshness",
+    "CacheStorage",
+    "CacheOwnership",
+    "CacheResult",
 
     # -------------------------------------------------------------------------
     # Platform Enumerations
     # -------------------------------------------------------------------------
 
-    "Environment",
-    "ExecutionMode",
-    "AgentStatus",
-    "LogLevel",
+    "PlatformType",
+    "PlatformRole",
+    "PlatformResponsibility",
+    "PlatformComponent",
+    "PlatformService",
+    "PlatformCapability",
+    "PlatformEnvironment",
+    "PlatformDeployment",
+    "PlatformLifecycle",
+    "PlatformState",
+    "PlatformHealth",
+    "PlatformTrustLevel",
 ]

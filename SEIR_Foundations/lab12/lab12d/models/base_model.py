@@ -6,34 +6,40 @@
 
  Description:
  ------------
- This module defines the BaseModel used throughout the Gen2X platform.
-
- Every domain model inherits from BaseModel.
+ This module defines Gen2XModel, the base class for every domain model
+ in the Gen2X platform.
 
  Examples include:
 
      • Indicator
-     • ProviderResult
      • ThreatEvidence
-     • ThreatSummary
-     • Finding
-     • Recommendation
-     • ThreatIntelligenceReport
+     • Threat
+     • Provider
+     • Report
+     • Response
 
- BaseModel provides only common functionality shared by every model.
+ Gen2XModel is built on pydantic.
 
- It intentionally contains NO business logic.
+ pydantic validates every model automatically:
+
+     • at construction
+
+     • on every field assignment
+
+     • during deserialization
+
+ Rather than writing validation, serialization, and copying by hand in
+ every model, domain models inherit that behavior here — exactly the way
+ every enumeration inherits shared behavior from Gen2XEnum.
 
  Responsibilities
  ----------------
 
- ✔ Serialization
- ✔ Deserialization
- ✔ JSON Conversion
- ✔ Dictionary Conversion
- ✔ Object Copying
- ✔ Validation Hooks
- ✔ Debug Representation
+ ✔ Shared model configuration
+ ✔ Serialization (to_dict / to_json)
+ ✔ Deserialization (from_dict)
+ ✔ Object copying
+ ✔ Utility helpers
 
  Non-Responsibilities
  --------------------
@@ -50,114 +56,75 @@
  Educational Notes
  -----------------
 
- One goal of Gen2X is teaching enterprise software architecture.
+ The helper names below (to_dict, from_dict, to_json) are thin wrappers
+ around pydantic's standard API (model_dump, model_validate,
+ model_dump_json).
 
- Rather than repeatedly implementing utility functions inside every
- domain model, BaseModel centralizes common behavior.
+ Learn the Gen2X names to understand the framework.
 
- This allows students to focus on the domain itself rather than
- boilerplate code.
+ Learn the pydantic names to understand the industry.
+
+ They are one line apart.
 
 ===============================================================================
 """
 
 from __future__ import annotations
 
-import copy
 import json
-from dataclasses import asdict
-from dataclasses import dataclass
-from dataclasses import fields
-from dataclasses import is_dataclass
 from typing import Any
 from typing import Dict
 from typing import Type
 from typing import TypeVar
 
+try:
+    from pydantic import BaseModel as PydanticBaseModel
+    from pydantic import ConfigDict
+except ImportError as import_error:  # pragma: no cover
+    raise ImportError(
+        "The Gen2X models package requires pydantic. "
+        "Install dependencies with: pip install -r requirements.txt"
+    ) from import_error
+
 # ============================================================================
 # Generic Type Variable
 # ============================================================================
 
-T = TypeVar("T", bound="BaseModel")
+T = TypeVar("T", bound="Gen2XModel")
 
 
 # ============================================================================
-# Base Model
+# Gen2X Model
 # ============================================================================
 
-@dataclass
-class BaseModel:
+class Gen2XModel(PydanticBaseModel):
     """
     Base class for every Gen2X domain model.
 
-    Why does this class exist?
+    Configuration decisions made here apply to the entire platform:
 
-    Enterprise software commonly contains hundreds of domain models.
+        validate_assignment=True
 
-    Without a common base class every model would need to implement:
+            Models re-validate whenever a field is assigned.
 
-        • to_dict()
-        • to_json()
-        • from_dict()
-        • copy()
-        • validation
-        • debugging
+            An invalid mutation fails at the moment it happens,
+            not three components later.
 
-    individually.
+        extra="forbid"
 
-    BaseModel centralizes those capabilities while remaining completely
-    independent of the security domain.
+            Unknown constructor arguments are rejected.
 
-    This class should remain generic.
+            Typos fail loudly instead of being silently absorbed.
 
-    If a method is specific to Threat Intelligence,
-    Providers,
-    AWS,
-    Reporting,
-    or Fusion,
+    Child models declare fields and validators.
 
-    it DOES NOT belong here.
+    Everything else is inherited.
     """
 
-    # ----------------------------------------------------------------------
-    # Lifecycle Hook
-    # ----------------------------------------------------------------------
-
-    def __post_init__(self) -> None:
-        """
-        Automatically validate every model after construction.
-
-        Dataclasses automatically call __post_init__()
-        after __init__() completes.
-
-        Child classes may override validate()
-        without overriding __post_init__().
-        """
-        self.validate()
-
-    # ----------------------------------------------------------------------
-    # Validation Hook
-    # ----------------------------------------------------------------------
-
-    def validate(self) -> None:
-        """
-        Validation hook.
-
-        Child models override this method
-        to implement custom validation.
-
-        Example
-
-            class Indicator(BaseModel):
-
-                def validate(self):
-
-                    if not self.value:
-                        raise ValueError("Indicator cannot be empty")
-
-        The default implementation performs no validation.
-        """
-        return
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="forbid",
+    )
 
     # ----------------------------------------------------------------------
     # Dictionary Serialization
@@ -165,15 +132,27 @@ class BaseModel:
 
     def to_dict(self) -> Dict[str, Any]:
         """
-        Convert this dataclass into a dictionary.
+        Convert this model into a JSON-safe dictionary.
 
-        Nested dataclasses are automatically converted.
+        The output contains only JSON-compatible values:
+
+            • Nested models become dictionaries
+
+            • Enumerations become their string values
+
+            • Datetimes become ISO-8601 strings
+
+            • Sets become lists
+
+        The output of to_dict() can always be passed back into
+        from_dict() to reconstruct an equal object.
 
         Returns
         -------
         dict
         """
-        return asdict(self)
+
+        return self.model_dump(mode="json")
 
     # ----------------------------------------------------------------------
     # JSON Serialization
@@ -182,6 +161,8 @@ class BaseModel:
     def to_json(self, indent: int = 4) -> str:
         """
         Serialize this model into JSON.
+
+        Keys are sorted so output remains stable and diff-friendly.
 
         Parameters
         ----------
@@ -196,7 +177,6 @@ class BaseModel:
         return json.dumps(
             self.to_dict(),
             indent=indent,
-            default=str,
             sort_keys=True,
         )
 
@@ -207,69 +187,56 @@ class BaseModel:
     @classmethod
     def from_dict(cls: Type[T], data: Dict[str, Any]) -> T:
         """
-        Construct an object from a dictionary.
+        Construct a model from a dictionary.
 
-        Unknown fields are ignored.
+        Values are converted back into their declared field types:
 
-        Missing required fields will raise
-        the normal dataclass exception.
+            • Nested dictionaries become nested models
+
+            • Enum values become enumeration members
+
+            • ISO-8601 strings become datetimes
+
+            • Lists become sets where the field declares a set
+
+        Unknown top-level fields are ignored.
+
+        Deserialization is intentionally forgiving about unknown
+        fields because payloads often carry extra keys added by
+        other systems.
+
+        Direct construction remains strict (extra="forbid").
+
+        Invalid or missing required values raise ValueError
+        (pydantic's ValidationError is a ValueError).
 
         Returns
         -------
-        BaseModel
+        Gen2XModel
         """
-
-        valid_fields = {field.name for field in fields(cls)}
 
         filtered = {
             key: value
             for key, value in data.items()
-            if key in valid_fields
+            if key in cls.model_fields
         }
 
-        return cls(**filtered)
+        return cls.model_validate(filtered)
 
     # ----------------------------------------------------------------------
     # Object Copy
     # ----------------------------------------------------------------------
 
-    def copy(self: T) -> T:
+    def copy(self: T) -> T:  # type: ignore[override]
         """
-        Create a deep copy of this object.
+        Create a deep copy of this model.
 
         Returns
         -------
-        BaseModel
-        """
-        return copy.deepcopy(self)
-
-    # ----------------------------------------------------------------------
-    # Pretty Representation
-    # ----------------------------------------------------------------------
-
-    def __repr__(self) -> str:
-        """
-        Human-friendly representation.
-
-        Useful while debugging.
-
-        Example
-
-            ProviderResult(
-                provider='AbuseIPDB',
-                status='SUCCESS'
-            )
+        Gen2XModel
         """
 
-        values = ", ".join(
-
-            f"{field.name}={getattr(self, field.name)!r}"
-
-            for field in fields(self)
-
-        )
-
-        return f"{self.__class__.__name__}({values})"
+        return self.model_copy(deep=True)
 
     # ----------------------------------------------------------------------
     # Equality Helper
@@ -310,38 +277,12 @@ class BaseModel:
     # ----------------------------------------------------------------------
 
     @property
-    def is_valid(self) -> bool:
-        """
-        Indicates whether validation succeeds.
-
-        Useful for demonstrations and testing.
-
-        Returns
-        -------
-        bool
-        """
-
-        try:
-
-            self.validate()
-
-            return True
-
-        except Exception:
-
-            return False
-
-    # ----------------------------------------------------------------------
-    # Utility
-    # ----------------------------------------------------------------------
-
-    @property
     def field_names(self) -> list[str]:
         """
-        Return every dataclass field name.
+        Return every declared field name.
         """
 
-        return [field.name for field in fields(self)]
+        return list(type(self).model_fields)
 
     # ----------------------------------------------------------------------
     # Utility
@@ -349,7 +290,60 @@ class BaseModel:
 
     def field_count(self) -> int:
         """
-        Return the number of dataclass fields.
+        Return the number of declared fields.
         """
 
-        return len(fields(self))
+        return len(type(self).model_fields)
+
+
+# ============================================================================
+#
+# Chewbacca's Commentary 🐾
+#
+# Validation used to be
+#
+# a chore.
+#
+# Something engineers wrote
+#
+# by hand,
+#
+# at midnight,
+#
+# inconsistently.
+#
+# Gen2XModel makes validation
+#
+# a property of the platform.
+#
+# Every model.
+#
+# Every field.
+#
+# Every assignment.
+#
+# Automatically.
+#
+# Declare what should be true.
+#
+# Let the framework
+#
+# keep it true.
+#
+#                              — Chewbacca
+#                                Chief Wookiee Architect
+#
+# ============================================================================
+
+
+# ============================================================================
+# Backwards-Compatible Alias
+# ============================================================================
+#
+# Earlier revisions exported this class as BaseModel.
+#
+# New code should inherit from Gen2XModel.
+#
+# ============================================================================
+
+BaseModel = Gen2XModel
